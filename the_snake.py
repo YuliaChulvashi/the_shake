@@ -1,5 +1,6 @@
+from ctypes.wintypes import RGB
 from random import choice, randint
-
+import time
 import pygame
 
 # Константы для размеров поля и сетки:
@@ -30,16 +31,12 @@ SNAKE_COLOR = (0, 255, 0)
 SPEED = 20
 
 # Настройка игрового окна:
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
-
-# Заголовок окна игрового поля:
-pygame.display.set_caption('Змейка')
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption('Изгиб Питона')
 
 # Настройка времени:
 clock = pygame.time.Clock()
 
-
-# Тут опишите все классы игры.
 class Apple:
     def __init__(self):
         self.position = (randint(0, GRID_WIDTH - 1) * GRID_SIZE, randint(0, GRID_HEIGHT - 1) * GRID_SIZE)
@@ -49,7 +46,6 @@ class Apple:
         rect = pygame.Rect(self.position, (GRID_SIZE, GRID_SIZE))
         pygame.draw.rect(screen, self.body_color, rect)
         pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
-
 
 class Snake:
     def __init__(self):
@@ -69,23 +65,14 @@ class Snake:
         head = self.positions[0]
         new_head = (head[0] + self.direction[0] * GRID_SIZE, head[1] + self.direction[1] * GRID_SIZE)
 
-        # Плавное движение
-        target_position = (new_head[0] + GRID_SIZE // 2, new_head[1] + GRID_SIZE // 2)
-        current_time = pygame.time.get_ticks()
-        elapsed_time = (current_time - self.last_move_time) / 1000
-        distance_to_travel = GRID_SIZE
+        # Обновление позиции головы змеи
+        self.positions.insert(0, new_head)
 
-        total_distance = distance_to_travel * elapsed_time
-        dx = self.direction[0] * GRID_SIZE
-        dy = self.direction[1] * GRID_SIZE
-
-        final_x = int(head[0] + dx * (total_distance / distance_to_travel))
-        final_y = int(head[1] + dy * (total_distance / distance_to_travel))
-
-        self.positions.insert(0, (final_x, final_y))
-
-        # Обновление времени последнего движения
-        self.last_move_time = current_time
+        # Проверка столкновения с самим собой
+        if (new_head in self.positions[1:]) or \
+           (new_head[0] < 0) or (new_head[0] >= GRID_WIDTH * GRID_SIZE) or \
+           (new_head[1] < 0) or (new_head[1] >= GRID_HEIGHT * GRID_SIZE):
+            game_over_screen()
 
     def grow(self):
         self.positions.append(self.positions[-1])
@@ -101,16 +88,19 @@ class Snake:
     def check_collision(self, other):
         return self.positions[0] == other.position
 
-
 def main():
+    global apple
+    global snake
+    global font
+
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('Змейка')
     clock = pygame.time.Clock()
+    font = pygame.font.Font(None, 36)
 
     apple = Apple()
     snake = Snake()
-    snake.last_move_time = pygame.time.get_ticks()
 
     running = True
     while running:
@@ -134,17 +124,10 @@ def main():
             apple = Apple()
             snake.grow()
 
-        # Проверка столкновения с самим собой
-        if (snake.positions[0] in snake.positions[2:]) or \
-                (snake.positions[0][0] < 0) or (snake.positions[0][0] >= GRID_WIDTH * GRID_SIZE) or \
-                (snake.positions[0][1] < 0) or (snake.positions[0][1] >= GRID_HEIGHT * GRID_SIZE):
-            game_over_screen()
+        apple.draw(screen)
+        snake.draw(screen)
 
-        screen.fill(BOARD_BACKGROUND_COLOR)
-        apple.draw(SCREEN_WIDTH, SCREEN_HEIGHT)
-        snake.draw(SCREEN_WIDTH, SCREEN_HEIGHT)
-
-        score_text = font.render(f"Score: {snake.score}", True, WHITE)
+        score_text = font.render(f"Score: {snake.score}", True, RGB(255, 255, 255))
         screen.blit(score_text, (10, 10))
 
         pygame.display.flip()
@@ -152,26 +135,19 @@ def main():
 
     pygame.quit()
 
-
 def game_over_screen():
     screen.fill(BOARD_BACKGROUND_COLOR)
 
     my_font = pygame.font.SysFont('times new roman', 50)
-    game_over_surface = my_font.render('Game Over!', True, RED)
+    game_over_surface = my_font.render('Game Over!', True, RGB(255, 0, 0))
     game_over_rect = game_over_surface.get_rect()
     game_over_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 25)
     screen.blit(game_over_surface, game_over_rect)
-
-    score_surface = font.render(str(snake.score), True, WHITE)
-    score_rect = score_surface.get_rect()
-    score_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 25)
-    screen.blit(score_surface, score_rect)
 
     pygame.display.flip()
 
     time.sleep(2)
     pygame.quit()
-
 
 if __name__ == '__main__':
     main()
